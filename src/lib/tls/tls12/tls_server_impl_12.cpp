@@ -486,6 +486,10 @@ void Server_Impl_12::process_client_key_exchange_msg(Server_Handshake_State& pen
       new Client_Key_Exchange(contents, pending_state, pending_state.server_rsa_kex_key(), *m_creds, policy(), rng()));
 
    pending_state.compute_session_keys();
+   if(policy().allow_ssl_key_log_file()) {
+      callbacks().tls_ssl_key_log_data(
+         "CLIENT_RANDOM", pending_state.client_hello()->random(), pending_state.session_keys().master_secret());
+   }
 }
 
 void Server_Impl_12::process_change_cipher_spec_msg(Server_Handshake_State& pending_state) {
@@ -676,6 +680,10 @@ void Server_Impl_12::session_resume(Server_Handshake_State& pending_state, const
 
    pending_state.mark_as_resumption();
    pending_state.compute_session_keys(session.session.master_secret());
+   if(policy().allow_ssl_key_log_file()) {
+      callbacks().tls_ssl_key_log_data(
+         "CLIENT_RANDOM", pending_state.client_hello()->random(), pending_state.session_keys().master_secret());
+   }
    pending_state.set_resume_certs(session.session.peer_certs());
 
    // Give the application a chance for a final veto before fully

@@ -560,6 +560,18 @@ class BOTAN_PUBLIC_API(2, 0) Callbacks {
       virtual void tls_log_debug_bin(const char* descr, const uint8_t val[], size_t val_len) {
          BOTAN_UNUSED(descr, val, val_len);
       }
+
+      /**
+       * Optional callback: gives away data for ssl key log file
+       * @param label secret label for tls
+       * @param client_random random value from ClientHello message
+       * @param secret secret value
+       */
+      virtual void tls_ssl_key_log_data(const char* label,
+                                        const std::vector<uint8_t>& client_random,
+                                        const secure_vector<uint8_t>& secret) {
+         BOTAN_UNUSED(label, client_random, secret);
+      }
 };
 
 }  // namespace TLS

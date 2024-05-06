@@ -327,7 +327,15 @@ void Client_Impl_13::handle(const Server_Hello_13& sh) {
    } else {
       m_resumed_session.reset();  // might have been set if we attempted a resumption
       m_cipher_state = Cipher_State::init_with_server_hello(
-         m_side, std::move(shared_secret), cipher.value(), m_transcript_hash.current());
+         m_side,
+         std::move(shared_secret),
+         cipher.value(),
+         m_transcript_hash.current(),
+         [this](const char* label, const secure_vector<uint8_t>& secret) {
+            if(policy().allow_ssl_key_log_file()) {
+               callbacks().tls_ssl_key_log_data(label, m_handshake_state.client_hello().random(), secret);
+            }
+         });
    }
 
    callbacks().tls_examine_extensions(sh.extensions(), Connection_Side::Server, Handshake_Type::ServerHello);

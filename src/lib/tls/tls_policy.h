@@ -32,6 +32,11 @@ namespace TLS {
 class BOTAN_PUBLIC_API(2, 0) Policy {
    public:
       /**
+      * Allow ssl key log file
+      */
+      virtual bool allow_ssl_key_log_file() const;
+
+      /**
       * Returns a list of ciphers we are willing to negotiate, in
       * order of preference.
       */

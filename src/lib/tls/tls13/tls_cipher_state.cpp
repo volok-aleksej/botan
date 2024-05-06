@@ -119,8 +119,9 @@ constexpr size_t NONCE_LENGTH = 12;
 std::unique_ptr<Cipher_State> Cipher_State::init_with_server_hello(const Connection_Side side,
                                                                    secure_vector<uint8_t>&& shared_secret,
                                                                    const Ciphersuite& cipher,
-                                                                   const Transcript_Hash& transcript_hash) {
-   auto cs = std::unique_ptr<Cipher_State>(new Cipher_State(side, cipher.prf_algo()));
+                                                                   const Transcript_Hash& transcript_hash,
+                                                                   ssl_key_log_callback sklc) {
+   auto cs = std::unique_ptr<Cipher_State>(new Cipher_State(side, cipher.prf_algo(), std::move(sklc)));
    cs->advance_without_psk();
    cs->advance_with_server_hello(cipher, std::move(shared_secret), transcript_hash);
    return cs;
@@ -129,8 +130,9 @@ std::unique_ptr<Cipher_State> Cipher_State::init_with_server_hello(const Connect
 std::unique_ptr<Cipher_State> Cipher_State::init_with_psk(const Connection_Side side,
                                                           const Cipher_State::PSK_Type type,
                                                           secure_vector<uint8_t>&& psk,
-                                                          std::string_view prf_algo) {
-   auto cs = std::unique_ptr<Cipher_State>(new Cipher_State(side, prf_algo));
+                                                          std::string_view prf_algo,
+                                                          ssl_key_log_callback sklc) {
+   auto cs = std::unique_ptr<Cipher_State>(new Cipher_State(side, prf_algo, std::move(sklc)));
    cs->advance_with_psk(type, std::move(psk));
    return cs;
 }
@@ -147,6 +149,9 @@ void Cipher_State::advance_with_client_hello(const Transcript_Hash& transcript_h
    // derive_write_traffic_key(client_early_traffic_secret);
 
    m_exporter_master_secret = derive_secret(m_early_secret, "e exp master", transcript_hash);
+   if(m_ssl_key_log_callback) {
+      m_ssl_key_log_callback("EARLY_EXPORTER_MASTER_SECRET", m_exporter_master_secret);
+   }
 
    m_salt = derive_secret(m_early_secret, "derived", empty_hash());
    zap(m_early_secret);
@@ -161,6 +166,10 @@ void Cipher_State::advance_with_server_finished(const Transcript_Hash& transcrip
 
    auto client_application_traffic_secret = derive_secret(master_secret, "c ap traffic", transcript_hash);
    auto server_application_traffic_secret = derive_secret(master_secret, "s ap traffic", transcript_hash);
+   if(m_ssl_key_log_callback) {
+      m_ssl_key_log_callback("CLIENT_TRAFFIC_SECRET_0", client_application_traffic_secret);
+      m_ssl_key_log_callback("SERVER_TRAFFIC_SECRET_0", server_application_traffic_secret);
+   }
 
    // Note: the secrets for processing client's application data
    //       are not derived before the client's Finished message
@@ -176,6 +185,9 @@ void Cipher_State::advance_with_server_finished(const Transcript_Hash& transcrip
    }
 
    m_exporter_master_secret = derive_secret(master_secret, "exp master", transcript_hash);
+   if(m_ssl_key_log_callback) {
+      m_ssl_key_log_callback("EXPORTER_SECRET", m_exporter_master_secret);
+   }
 
    m_state = State::ServerApplicationTraffic;
 }
@@ -414,9 +426,10 @@ std::unique_ptr<MessageAuthenticationCode> create_hmac(std::string_view hash) {
 
 }  // namespace
 
-Cipher_State::Cipher_State(Connection_Side whoami, std::string_view hash_function) :
+Cipher_State::Cipher_State(Connection_Side whoami, std::string_view hash_function, ssl_key_log_callback sklc) :
       m_state(State::Uninitialized),
       m_connection_side(whoami),
+      m_ssl_key_log_callback(std::move(sklc)),
       m_extract(std::make_unique<HKDF_Extract>(create_hmac(hash_function))),
       m_expand(std::make_unique<HKDF_Expand>(create_hmac(hash_function))),
       m_hash(HashFunction::create_or_throw(hash_function)),
@@ -473,7 +486,10 @@ void Cipher_State::advance_with_server_hello(const Ciphersuite& cipher,
 
    const auto client_handshake_traffic_secret = derive_secret(handshake_secret, "c hs traffic", transcript_hash);
    const auto server_handshake_traffic_secret = derive_secret(handshake_secret, "s hs traffic", transcript_hash);
-
+   if(m_ssl_key_log_callback) {
+      m_ssl_key_log_callback("CLIENT_HANDSHAKE_TRAFFIC_SECRET", client_handshake_traffic_secret);
+      m_ssl_key_log_callback("SERVER_HANDSHAKE_TRAFFIC_SECRET", server_handshake_traffic_secret);
+   }
    if(m_connection_side == Connection_Side::Server) {
       derive_read_traffic_key(client_handshake_traffic_secret, true);
       derive_write_traffic_key(server_handshake_traffic_secret, true);

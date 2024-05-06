@@ -9,6 +9,8 @@
 #ifndef BOTAN_TLS_CIPHER_STATE_H_
 #define BOTAN_TLS_CIPHER_STATE_H_
 
+#include <functional>
+
 #include <botan/secmem.h>
 #include <botan/tls_magic.h>
 #include <botan/tls_messages.h>
@@ -65,6 +67,8 @@ class BOTAN_TEST_API Cipher_State {
          External,  // currently not implemented
       };
 
+      typedef std::function<void(const char* label, const secure_vector<uint8_t>& secret)> ssl_key_log_callback;
+
    public:
       ~Cipher_State();
 
@@ -74,7 +78,8 @@ class BOTAN_TEST_API Cipher_State {
       static std::unique_ptr<Cipher_State> init_with_psk(Connection_Side side,
                                                          PSK_Type type,
                                                          secure_vector<uint8_t>&& psk,
-                                                         std::string_view prf_algo);
+                                                         std::string_view prf_algo,
+                                                         ssl_key_log_callback sklc = nullptr);
 
       /**
        * Construct a Cipher_State after receiving a server hello message.
@@ -82,7 +87,8 @@ class BOTAN_TEST_API Cipher_State {
       static std::unique_ptr<Cipher_State> init_with_server_hello(Connection_Side side,
                                                                   secure_vector<uint8_t>&& shared_secret,
                                                                   const Ciphersuite& cipher,
-                                                                  const Transcript_Hash& transcript_hash);
+                                                                  const Transcript_Hash& transcript_hash,
+                                                                  ssl_key_log_callback sklc = nullptr);
 
       /**
        * Transition internal secrets/keys for transporting early application data.
@@ -260,7 +266,7 @@ class BOTAN_TEST_API Cipher_State {
        * @param whoami         whether we play the Server or Client
        * @param hash_function  the negotiated hash function to be used
        */
-      Cipher_State(Connection_Side whoami, std::string_view hash_function);
+      Cipher_State(Connection_Side whoami, std::string_view hash_function, ssl_key_log_callback sklc);
 
       void advance_with_psk(PSK_Type type, secure_vector<uint8_t>&& psk);
       void advance_without_psk();
@@ -304,6 +310,7 @@ class BOTAN_TEST_API Cipher_State {
    private:
       State m_state;
       Connection_Side m_connection_side;
+      ssl_key_log_callback m_ssl_key_log_callback;
 
       std::unique_ptr<AEAD_Mode> m_encrypt;
       std::unique_ptr<AEAD_Mode> m_decrypt;

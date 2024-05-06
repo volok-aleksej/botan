@@ -226,22 +226,35 @@ void Server_Impl_13::handle_reply_to_client_hello(Server_Hello_13 server_hello) 
    if(uses_psk) {
       auto psk_extension = server_hello.extensions().get<PSK>();
 
-      psk_cipher_state =
-         std::visit(overloaded{[&, this](Session session) {
-                                  m_resumed_session = std::move(session);
-                                  return Cipher_State::init_with_psk(Connection_Side::Server,
-                                                                     Cipher_State::PSK_Type::Resumption,
-                                                                     m_resumed_session->extract_master_secret(),
-                                                                     cipher.prf_algo());
-                               },
-                               [&, this](ExternalPSK psk) {
-                                  m_psk_identity = psk.identity();
-                                  return Cipher_State::init_with_psk(Connection_Side::Server,
-                                                                     Cipher_State::PSK_Type::External,
-                                                                     psk.extract_master_secret(),
-                                                                     cipher.prf_algo());
-                               }},
-                    psk_extension->take_session_to_resume_or_psk());
+      psk_cipher_state = std::visit(overloaded{[&, this](Session session) {
+                                                  m_resumed_session = std::move(session);
+                                                  return Cipher_State::init_with_psk(
+                                                     Connection_Side::Server,
+                                                     Cipher_State::PSK_Type::Resumption,
+                                                     m_resumed_session->extract_master_secret(),
+                                                     cipher.prf_algo(),
+                                                     [this](const char* label, const secure_vector<uint8_t>& secret) {
+                                                        if(policy().allow_ssl_key_log_file()) {
+                                                           callbacks().tls_ssl_key_log_data(
+                                                              label, m_handshake_state.client_hello().random(), secret);
+                                                        }
+                                                     });
+                                               },
+                                               [&, this](ExternalPSK psk) {
+                                                  m_psk_identity = psk.identity();
+                                                  return Cipher_State::init_with_psk(
+                                                     Connection_Side::Server,
+                                                     Cipher_State::PSK_Type::External,
+                                                     psk.extract_master_secret(),
+                                                     cipher.prf_algo(),
+                                                     [this](const char* label, const secure_vector<uint8_t>& secret) {
+                                                        if(policy().allow_ssl_key_log_file()) {
+                                                           callbacks().tls_ssl_key_log_data(
+                                                              label, m_handshake_state.client_hello().random(), secret);
+                                                        }
+                                                     });
+                                               }},
+                                    psk_extension->take_session_to_resume_or_psk());
 
       // RFC 8446 4.2.11
       //    Prior to accepting PSK key establishment, the server MUST validate
@@ -293,8 +306,16 @@ void Server_Impl_13::handle_reply_to_client_hello(Server_Hello_13 server_hello) 
 
          return std::move(psk_cipher_state);
       } else {
-         return Cipher_State::init_with_server_hello(
-            m_side, my_keyshare->take_shared_secret(), cipher, m_transcript_hash.current());
+         return Cipher_State::init_with_server_hello(m_side,
+                                                     my_keyshare->take_shared_secret(),
+                                                     cipher,
+                                                     m_transcript_hash.current(),
+                                                     [this](const char* label, const secure_vector<uint8_t>& secret) {
+                                                        if(policy().allow_ssl_key_log_file()) {
+                                                           callbacks().tls_ssl_key_log_data(
+                                                              label, m_handshake_state.client_hello().random(), secret);
+                                                        }
+                                                     });
       }
    }();
 
