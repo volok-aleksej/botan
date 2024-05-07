@@ -562,14 +562,22 @@ class BOTAN_PUBLIC_API(2, 0) Callbacks {
       }
 
       /**
-       * Optional callback: gives away data for ssl key log file
-       * @param label secret label for tls
-       * @param client_random random value from ClientHello message
-       * @param secret secret value
+       * Optional callback: Allows access to a connection's secret data
+       *
+       * Useful to implement the SSLKEYLOGFILE for connection debugging as
+       * specified in ietf.org/archive/id/draft-thomson-tls-keylogfile-00.html
+       *
+       * Default implementation simply ignores the inputs.
+       *
+       * @param label  Identifies the reported secret type
+       *               See draft-thomson-tls-keylogfile-00 Section 3.1
+       * @param client_random  random value from ClientHello message acting as
+       *                       an identifier of the TLS sessions
+       * @param secret         the actual secret value
        */
-      virtual void tls_ssl_key_log_data(const char* label,
-                                        const std::vector<uint8_t>& client_random,
-                                        const secure_vector<uint8_t>& secret) {
+      virtual void tls_ssl_key_log_data(std::string_view label,
+                                        const std::span<const uint8_t>& client_random,
+                                        const std::span<const uint8_t>& secret) {
          BOTAN_UNUSED(label, client_random, secret);
       }
 };

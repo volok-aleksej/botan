@@ -404,6 +404,10 @@ void Client_Impl_12::process_handshake_msg(const Handshake_State* active_state,
 
          state.compute_session_keys(state.resume_master_secret());
          if(policy().allow_ssl_key_log_file()) {
+            // draft-thomson-tls-keylogfile-00 Section 3.2
+            //    An implementation of TLS 1.2 (and also earlier versions) use
+            //    the label "CLIENT_RANDOM" to identify the "master" secret for
+            //    the connection.
             callbacks().tls_ssl_key_log_data(
                "CLIENT_RANDOM", state.client_hello()->random(), state.session_keys().master_secret());
          }
@@ -603,6 +607,10 @@ void Client_Impl_12::process_handshake_msg(const Handshake_State* active_state,
 
       state.compute_session_keys();
       if(policy().allow_ssl_key_log_file()) {
+         // draft-thomson-tls-keylogfile-00 Section 3.2
+         //    An implementation of TLS 1.2 (and also earlier versions) use
+         //    the label "CLIENT_RANDOM" to identify the "master" secret for
+         //    the connection.
          callbacks().tls_ssl_key_log_data(
             "CLIENT_RANDOM", state.client_hello()->random(), state.session_keys().master_secret());
       }
