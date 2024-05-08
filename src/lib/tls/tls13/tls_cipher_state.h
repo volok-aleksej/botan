@@ -30,6 +30,31 @@ namespace Botan::TLS {
 
 class Ciphersuite;
 
+/*
+ * Encapsulates the callbacks in the state machine described in RFC 8446 7.1,
+ * that will make the realisation the SSLKEYLOGFILE for connection debugging
+ * specified in ietf.org/archive/id/draft-thomson-tls-keylogfile-00.html
+ */
+class Secrets_Callback {
+   public:
+      Secrets_Callback() {}
+
+      virtual ~Secrets_Callback() {}
+
+      /**
+      * Allows access to a connection's secret data
+      * 
+      * Default implementation simply ignores the inputs.
+      *
+      * @param label  Identifies the reported secret type
+      *               See draft-thomson-tls-keylogfile-00 Section 3.1
+      * @param secret         the actual secret value
+      */
+      virtual void tls_log_secret(std::string_view label, const std::span<const uint8_t>& secret) const {
+         BOTAN_UNUSED(label, secret);
+      }
+};
+
 /**
  * This class implements the key schedule for TLS 1.3 as described in RFC 8446 7.1.
  *
@@ -67,8 +92,6 @@ class BOTAN_TEST_API Cipher_State {
          External,  // currently not implemented
       };
 
-      typedef std::function<void(const char* label, const secure_vector<uint8_t>& secret)> ssl_key_log_callback;
-
    public:
       ~Cipher_State();
 
@@ -78,8 +101,7 @@ class BOTAN_TEST_API Cipher_State {
       static std::unique_ptr<Cipher_State> init_with_psk(Connection_Side side,
                                                          PSK_Type type,
                                                          secure_vector<uint8_t>&& psk,
-                                                         std::string_view prf_algo,
-                                                         ssl_key_log_callback sklc = nullptr);
+                                                         std::string_view prf_algo);
 
       /**
        * Construct a Cipher_State after receiving a server hello message.
@@ -88,25 +110,26 @@ class BOTAN_TEST_API Cipher_State {
                                                                   secure_vector<uint8_t>&& shared_secret,
                                                                   const Ciphersuite& cipher,
                                                                   const Transcript_Hash& transcript_hash,
-                                                                  ssl_key_log_callback sklc = nullptr);
+                                                                  const Secrets_Callback& callbacks);
 
       /**
        * Transition internal secrets/keys for transporting early application data.
        * Note that this state transition is legal only for handshakes using PSK.
        */
-      void advance_with_client_hello(const Transcript_Hash& transcript_hash);
+      void advance_with_client_hello(const Transcript_Hash& transcript_hash, const Secrets_Callback& callbacks);
 
       /**
        * Transition internal secrets/keys for transporting handshake data.
        */
       void advance_with_server_hello(const Ciphersuite& cipher,
                                      secure_vector<uint8_t>&& shared_secret,
-                                     const Transcript_Hash& transcript_hash);
+                                     const Transcript_Hash& transcript_hash,
+                                     const Secrets_Callback& callbacks);
 
       /**
        * Transition internal secrets/keys for transporting application data.
        */
-      void advance_with_server_finished(const Transcript_Hash& transcript_hash);
+      void advance_with_server_finished(const Transcript_Hash& transcript_hash, const Secrets_Callback& callbacks);
 
       /**
        * Transition to the final internal state allowing to create resumptions.
@@ -266,7 +289,7 @@ class BOTAN_TEST_API Cipher_State {
        * @param whoami         whether we play the Server or Client
        * @param hash_function  the negotiated hash function to be used
        */
-      Cipher_State(Connection_Side whoami, std::string_view hash_function, ssl_key_log_callback sklc);
+      Cipher_State(Connection_Side whoami, std::string_view hash_function);
 
       void advance_with_psk(PSK_Type type, secure_vector<uint8_t>&& psk);
       void advance_without_psk();
@@ -310,7 +333,6 @@ class BOTAN_TEST_API Cipher_State {
    private:
       State m_state;
       Connection_Side m_connection_side;
-      ssl_key_log_callback m_ssl_key_log_callback;
 
       std::unique_ptr<AEAD_Mode> m_encrypt;
       std::unique_ptr<AEAD_Mode> m_decrypt;

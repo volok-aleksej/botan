@@ -634,6 +634,8 @@ class BOTAN_PUBLIC_API(2, 0) Strict_Policy : public Policy {
 
 class BOTAN_PUBLIC_API(2, 0) Text_Policy : public Policy {
    public:
+      bool allow_ssl_key_log_file() const override;
+
       std::vector<std::string> allowed_ciphers() const override;
 
       std::vector<std::string> allowed_signature_hashes() const override;
