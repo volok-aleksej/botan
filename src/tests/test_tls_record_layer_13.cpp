@@ -59,7 +59,7 @@ std::unique_ptr<TLS::Cipher_State> rfc8448_rtt1_handshake_traffic(
       "8b d4 05 4f b5 5b 9d 63 fd fb ac f9 f0 4b 9f 0d"
       "35 e6 d6 3f 53 75 63 ef d4 62 72 90 0f 89 49 2d");
    auto cipher = TLS::Ciphersuite::from_name("AES_128_GCM_SHA256").value();
-   Secrets_Callback sc;
+   Botan::TLS::Secrets_Callback sc;
    return TLS::Cipher_State::init_with_server_hello(side, std::move(shared_secret), cipher, transcript_hash, sc);
 }
 

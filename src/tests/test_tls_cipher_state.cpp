@@ -312,7 +312,6 @@ std::vector<Test::Result> test_secret_derivation_rfc8448_rtt1() {
                      // advance Cipher_State with client_hello...server_Finished
                      // (allows receiving of application data, but does not yet allow such sending)
                      result.test_no_throw("state advancement is legal", [&] {
-                        Secrets_Callback sc;
                         cs->advance_with_server_finished(th_server_finished, sc);
                      });
 
@@ -604,8 +603,8 @@ std::vector<Test::Result> test_secret_derivation_rfc8448_rtt0() {
 
        CHECK_both("handshake traffic after PSK",
                   [&](Cipher_State* cs, Connection_Side side, Test::Result& result) {
-                     Secrets_Callback cs;
-                     cs->advance_with_server_hello(cipher, secure_vector<uint8_t>(shared_secret), th_server_hello, cs);
+                     Secrets_Callback sc;
+                     cs->advance_with_server_hello(cipher, secure_vector<uint8_t>(shared_secret), th_server_hello, sc);
 
                      // decrypt encrypted extensions from server
                      encrypted_extensions.xxcrypt(result, cs, side);
