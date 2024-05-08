@@ -634,7 +634,6 @@ std::vector<Test::Result> test_secret_derivation_rfc8448_rtt0() {
                      // advance Cipher_State with client_hello...server_Finished
                      // (allows receiving of application data, but no such sending)
                      result.test_no_throw("state advancement is legal", [&] {
-                        Secrets_Callback sc;
                         cs->advance_with_server_finished(th_server_finished, sc);
                      });
 

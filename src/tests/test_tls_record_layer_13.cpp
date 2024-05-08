@@ -656,7 +656,7 @@ std::vector<Test::Result> read_encrypted_records() {
 
             auto cs = rfc8448_rtt1_handshake_traffic();
             // advance with arbitrary hashes that were used to produce the input data
-            Secrets_Callback sc;
+            Botan::TLS::Secrets_Callback sc;
             cs->advance_with_server_finished(
                Botan::hex_decode("e1935a480babfc4403b2517f0ad414bed0ca51fa671e2061804afa78fd71d55c"), sc);
             cs->advance_with_client_finished(
