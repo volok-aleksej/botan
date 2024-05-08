@@ -311,9 +311,8 @@ std::vector<Test::Result> test_secret_derivation_rfc8448_rtt1() {
 
                      // advance Cipher_State with client_hello...server_Finished
                      // (allows receiving of application data, but does not yet allow such sending)
-                     result.test_no_throw("state advancement is legal", [&] {
-                        cs->advance_with_server_finished(th_server_finished, sc);
-                     });
+                     result.test_no_throw("state advancement is legal",
+                                          [&] { cs->advance_with_server_finished(th_server_finished, sc); });
 
                      if(side == Connection_Side::Client) {
                         result.confirm("can read application data", cs->can_decrypt_application_traffic());
@@ -633,9 +632,8 @@ std::vector<Test::Result> test_secret_derivation_rfc8448_rtt0() {
 
                      // advance Cipher_State with client_hello...server_Finished
                      // (allows receiving of application data, but no such sending)
-                     result.test_no_throw("state advancement is legal", [&] {
-                        cs->advance_with_server_finished(th_server_finished, sc);
-                     });
+                     result.test_no_throw("state advancement is legal",
+                                          [&] { cs->advance_with_server_finished(th_server_finished, sc); });
 
                      if(side == Connection_Side::Client) {
                         result.confirm("can read application data", cs->can_decrypt_application_traffic());
