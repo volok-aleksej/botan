@@ -1,13 +1,7 @@
+#include <condition_variable>
 #include <fstream>
 #include <iostream>
 #include <thread>
-
-#if defined(BOTAN_TARGET_OS_HAS_SOCKETS)
-   #include <arpa/inet.h>
-   #include <netinet/in.h>
-   #include <sys/ioctl.h>
-   #include <sys/socket.h>
-#endif
 
 #include <botan/auto_rng.h>
 #include <botan/certstor_system.h>
@@ -22,7 +16,13 @@
 #include <botan/tls_policy.h>
 #include <botan/tls_server.h>
 #include <botan/tls_session_manager_memory.h>
-#include <condition_variable>
+
+#if defined(BOTAN_TARGET_OS_HAS_SOCKETS)
+   #include <arpa/inet.h>
+   #include <netinet/in.h>
+   #include <sys/ioctl.h>
+   #include <sys/socket.h>
+#endif
 
 #define SERVER_PORT 5060
 #define CLIENT_PORT 5070
@@ -44,13 +44,11 @@ class Server_Credential : public Botan::Credentials_Manager {
    public:
       Server_Credential() {
          {
-            //Botan::DataSource_Stream in("botan.randombit.net.key");
-            Botan::DataSource_Stream in("/etc/sems/certs/sip.staging.phone.systems.key");
+            Botan::DataSource_Stream in("botan.randombit.net.key");
             m_key.reset(Botan::PKCS8::load_key(in).release());
          }
          {
-            //Botan::DataSource_Stream in("botan.randombit.net.crt");
-            Botan::DataSource_Stream in("/etc/sems/certs/sip.staging.phone.systems.crt");
+            Botan::DataSource_Stream in("botan.randombit.net.crt");
             while(true) {
                try {
                   certificates.push_back(Botan::X509_Certificate(in));
