@@ -111,7 +111,7 @@ class BotanTLSCallbacksProxy : public Botan::TLS::Callbacks {
       Botan::TLS::Callbacks& parent;
 
    public:
-      BotanTLSCallbacksProxy(Botan::TLS::Callbacks& parent) : parent(parent) {}
+      BotanTLSCallbacksProxy(Botan::TLS::Callbacks& callbacks) : parent(callbacks) {}
 
       void tls_emit_data(std::span<const uint8_t> data) override { parent.tls_emit_data(data); }
 
@@ -137,7 +137,7 @@ class DtlsConnection : public Botan::TLS::Callbacks {
       std::function<void(const DtlsConnection&)> activated_callback;
 
    public:
-      DtlsConnection(const std::string& r_addr, int r_port, int fd, bool is_server) : fd(fd) {
+      DtlsConnection(const std::string& r_addr, int r_port, int socket, bool is_server) : fd(socket) {
 #if defined(BOTAN_TARGET_OS_HAS_SOCKETS)
          remote_addr.sin_family = AF_INET;
          inet_aton(r_addr.c_str(), &remote_addr.sin_addr);
@@ -197,7 +197,7 @@ class DtlsConnection : public Botan::TLS::Callbacks {
 
       void set_activaited_callback(std::function<void(const DtlsConnection&)> callback) {
          activated_callback = callback;
-      };
+      }
 
       void close() {
          if(fd) {
@@ -212,8 +212,9 @@ class DtlsConnection : public Botan::TLS::Callbacks {
 void server_proc(std::function<void(std::shared_ptr<DtlsConnection> conn)> conn_callback) {
    std::cout << "Start Server" << std::endl;
 
+   int fd = 0;
 #if defined(BOTAN_TARGET_OS_HAS_SOCKETS)
-   int fd = socket(AF_INET, SOCK_DGRAM, 0);
+   fd = socket(AF_INET, SOCK_DGRAM, 0);
    if(fd == -1)
       return;
    int true_opt = 1;
@@ -254,8 +255,9 @@ void server_proc(std::function<void(std::shared_ptr<DtlsConnection> conn)> conn_
 void client_proc(std::function<void(std::shared_ptr<DtlsConnection> conn)> conn_callback) {
    std::cout << "Start Client" << std::endl;
 
+   int fd = 0;
 #if defined(BOTAN_TARGET_OS_HAS_SOCKETS)
-   int fd = socket(AF_INET, SOCK_DGRAM, 0);
+   fd = socket(AF_INET, SOCK_DGRAM, 0);
    if(fd == -1)
       return;
    int true_opt = 1;
