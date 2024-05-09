@@ -193,9 +193,7 @@ class DtlsConnection : public Botan::TLS::Callbacks {
 
       void received_data(std::span<const uint8_t> data) { dtls_channel->received_data(data); }
 
-      void set_activaited_callback(std::function<void()> callback) {
-         activated_callback = callback;
-      }
+      void set_activaited_callback(std::function<void()> callback) { activated_callback = callback; }
 
       void close() {
          if(fd) {
@@ -207,7 +205,7 @@ class DtlsConnection : public Botan::TLS::Callbacks {
       }
 };
 
-void server_proc(std::function<void(std::shared_ptr<DtlsConnection> conn)> conn_callback) {
+static void server_proc(std::function<void(std::shared_ptr<DtlsConnection> conn)> conn_callback) {
    std::cout << "Start Server" << std::endl;
 
    int fd = 0;
@@ -250,7 +248,7 @@ void server_proc(std::function<void(std::shared_ptr<DtlsConnection> conn)> conn_
    std::cout << "Server closed" << std::endl;
 }
 
-void client_proc(std::function<void(std::shared_ptr<DtlsConnection> conn)> conn_callback) {
+static void client_proc(std::function<void(std::shared_ptr<DtlsConnection> conn)> conn_callback) {
    std::cout << "Start Client" << std::endl;
 
    int fd = 0;
