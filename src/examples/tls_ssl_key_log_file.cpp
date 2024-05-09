@@ -132,7 +132,7 @@ class DtlsConnection : public Botan::TLS::Callbacks {
       sockaddr_in remote_addr;
 #endif
       std::unique_ptr<Botan::TLS::Channel> dtls_channel;
-      std::function<void(const DtlsConnection&)> activated_callback;
+      std::function<void()> activated_callback;
 
    public:
       DtlsConnection(const std::string& r_addr, int r_port, int socket, bool is_server) : fd(socket) {
@@ -178,7 +178,7 @@ class DtlsConnection : public Botan::TLS::Callbacks {
 
       void tls_session_activated() override {
          std::cout << "************ on_dtls_connect() ***********" << std::endl;
-         activated_callback(*this);
+         activated_callback();
       }
 
       void tls_ssl_key_log_data(std::string_view label,
@@ -193,7 +193,7 @@ class DtlsConnection : public Botan::TLS::Callbacks {
 
       void received_data(std::span<const uint8_t> data) { dtls_channel->received_data(data); }
 
-      void set_activaited_callback(std::function<void(const DtlsConnection&)> callback) {
+      void set_activaited_callback(std::function<void()> callback) {
          activated_callback = callback;
       }
 
@@ -317,7 +317,7 @@ int main() {
 
    std::vector<bool> activated;
    for(auto& conn : connections) {
-      conn->set_activaited_callback([&](const DtlsConnection& connection) {
+      conn->set_activaited_callback([&]() {
          activated.push_back(true);
          if(activated.size() == 2) {
             conn_cond.notify_one();
